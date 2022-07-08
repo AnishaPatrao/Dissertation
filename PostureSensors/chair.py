@@ -1,6 +1,7 @@
 #Libraries
 import RPi.GPIO as GPIO
 import time
+import pitch
 
 #GPIO Mode (BOARD / BCM)
 GPIO.setmode(GPIO.BCM)
@@ -21,32 +22,37 @@ ALLOWANCE = 5
 def distance(trigger, echo):
     # set Trigger to HIGH
     GPIO.output(trigger, True)
-    print(1)
+    
     # set Trigger after 0.01ms to LOW
     time.sleep(0.00001)
     GPIO.output(trigger, False)
-    print(2)
+    
 
     StartTime = time.time()
     StopTime = time.time()
-    print(3)
- 
+    
+    counter = 0
     # save StartTime
     while GPIO.input(echo) == 0:
         StartTime = time.time()
+        counter = counter + 1
+        if counter == 100000:
+            break
         
-    print(StartTime)
+    
  
     # save time of arrival
+    counter = 0
     while GPIO.input(echo) == 1:
         StopTime = time.time()
-    print(5)
+        counter = counter + 1
+        if counter == 100000:
+            break
+    
  
     # time difference between start and arrival
     TimeElapsed = StopTime - StartTime
-    print(StartTime)
-    print(StopTime)
-    print(TimeElapsed)
+    
     # multiply with the sonic speed (34300 cm/s)
     # and divide by 2, because there and back
     distance = (TimeElapsed * 34300) / 2
@@ -66,12 +72,17 @@ if __name__ == '__main__':
             upper = distance(17, 27) #upper
             print ("Measured Distance 2 = %.1f cm" % upper)
 
+
+            #find pitch from microbit gyroscope
+            print(pitch.GetPitch())
+            #print(len(pitch.GetPitch()))
+            
             #find the delta
             delta = upper - lower
             if delta - ALLOWANCE > 0:
                 print("toy bend")
             else:
-                print("toy straightened")
+                print("toy straighten")
 
             time.sleep(5)
  
