@@ -6,11 +6,17 @@ import os
 import time
 from datetime import datetime 
 from serial import Serial 
+import re
 
 nextCompassPoll = 0.0 
+pitchStr = ""
+numbers = re.compile('-?\d+')
 
 #serial connectoion to the microbit - microbits device id is stored in the below path
 serialDevDir='/dev/serial/by-id' 
+
+def has_numbers(inputString):
+    return any(char.isdigit() for char in inputString)
 
 #function to trigger the microbit
 def GetPitch():
@@ -18,18 +24,21 @@ def GetPitch():
         #while True:
         if (os.path.isdir(serialDevDir)):
             serialDevices = os.listdir(serialDevDir) 
-            #print(serialDevices)
+            ##print(serialDevices)
             if (len(serialDevices) > 0):
                 serialDevicePath = os.path.join(serialDevDir, serialDevices[0])
                 serial = Serial(port=serialDevicePath, baudrate=115200, timeout=0.2) 
                 #send a serial signal to the microbit
                 time.sleep(0.01)
-                pitchStr = serial.readline()
-                if len(pitchStr) > 4:
-                    print(serial.readline())
+                pitchStr = str(serial.readline())
+                if has_numbers(pitchStr):
+                    #print(pitchStr)
+                    result = list(map(int, numbers.findall(pitchStr)))
+                    #print(result[0])
+                    return result[0]
                 else:
-                    print("loop")
-                    GetPitch()
+                    #print("loop")
+                    return GetPitch()
                 
     except OSError as exception:
         raise
