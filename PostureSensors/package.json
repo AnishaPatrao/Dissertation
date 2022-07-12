@@ -13,6 +13,5 @@
     "@danielgjackson/ble-uart": "^1.0.1",
     "pigpio": "^3.3.1"
   },
-  "devDependencies": {},
   "description": ""
 }

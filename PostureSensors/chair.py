@@ -5,6 +5,7 @@ import pitch
 import exporttocsv
 import datetime
 import numpy as np
+import servo
 
 #GPIO Mode (BOARD / BCM)
 GPIO.setmode(GPIO.BCM)
@@ -23,7 +24,10 @@ GPIO.setup(27, GPIO.IN)
 ALLOWANCE = 8
 
 HEADER = ['Id', 'Upper_Sensor', 'Lower_Sensor', 'Pitch', 'Toy', 'Timestamp']
+currentPosture = ''
 previousPosture = ''
+beforePreviousPosture = ''
+toy = ''
 
 def distance(trigger, echo):
     # set Trigger to HIGH
@@ -107,19 +111,26 @@ if __name__ == '__main__':
             #find the delta
             delta = upper - lower
             if upper > 100 and lower > 100:
-                toy = 'straight'  #too close to both sensors
+                currentPosture = 'straight'  #too close to both sensors
             elif upper > 100:
-                toy = previousPosture 
+                currentPosture = previousPosture 
             elif delta - ALLOWANCE > 0:
-                toy = 'bent'
-                #print("toy bend")
+                currentPosture = 'bent'
+                #print("currentPosture bend")
             else:
-                toy = 'straight'
-                #print("toy straighten")
-            previousPosture = toy
+                currentPosture = 'straight'
+                #print("currentPosture straighten")
+
+            #check last 3 readings before moving
+            if currentPosture == previousPosture and currentPosture == beforePreviousPosture and currentPosture != toy:
+                servo.Move(currentPosture)
+            
+            toy = beforePreviousPosture
+            beforePreviousPosture = previousPosture
+            previousPosture = currentPosture
 
             #log into csv
-            row = [count, upper, lower, pitchStr, toy, datetime.datetime.now().strftime('%m-%d-%Y_%H.%M.%S')]
+            row = [count, upper, lower, pitchStr, currentPosture, datetime.datetime.now().strftime('%m-%d-%Y_%H.%M.%S')]
             
             
             if len(rows) == 0:
