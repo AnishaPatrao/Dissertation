@@ -6,7 +6,6 @@ import exporttocsv
 import datetime
 import numpy as np
 import servo
-import medianFilter
 
 #GPIO Mode (BOARD / BCM)
 GPIO.setmode(GPIO.BCM)
@@ -29,13 +28,6 @@ currentPosture = ''
 previousPosture = ''
 beforePreviousPosture = ''
 toy = ''
-upperReadings = []
-lowerReadings = []
-
-def saveReadings(readings, currentReading):
-    if len(readings) > 9:
-        readings = np.delete(readings, 0)
-    return np.concatenate((readings, [currentReading]))
 
 def distance(trigger, echo):
     # set Trigger to HIGH
@@ -115,17 +107,6 @@ if __name__ == '__main__':
             pitchStr = pitch.GetPitch()
             #print(pitchStr)
             ##print(len(pitch.GetPitch()))
-
-            #store latest 10 readings
-            upperReadings = saveReadings(upperReadings, upper)
-            #print(upperReadings)
-
-            lowerReadings = saveReadings(lowerReadings, lower)
-            #print(lowerReadings)
-
-            #find mediam of readings
-            upper = medianFilter.median(upperReadings)
-            lower = medianFilter.median(lowerReadings)
             
             #find the delta
             delta = upper - lower
@@ -164,13 +145,9 @@ if __name__ == '__main__':
                 exporttocsv.WriteRows(rows)
                 rows = []
 
-            time.sleep(0.5)
+            time.sleep(3)
  
         # Reset by pressing CTRL + C
     except KeyboardInterrupt:
         #print("Measurement stopped by User")
         GPIO.cleanup()
-
-
-
-    
