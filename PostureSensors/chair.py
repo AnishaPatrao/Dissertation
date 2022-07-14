@@ -7,6 +7,12 @@ import datetime
 import numpy as np
 import servo
 import medianFilter
+import client
+import threading
+import socketio
+
+sio = socketio.Client()
+
 
 #GPIO Mode (BOARD / BCM)
 GPIO.setmode(GPIO.BCM)
@@ -22,15 +28,7 @@ GPIO.setup(GPIO_ECHO, GPIO.IN)
 GPIO.setup(17, GPIO.OUT)
 GPIO.setup(27, GPIO.IN)
 
-ALLOWANCE = 8
 
-HEADER = ['Id', 'Upper_Sensor', 'Lower_Sensor', 'Pitch', 'Toy', 'Timestamp']
-currentPosture = ''
-previousPosture = ''
-beforePreviousPosture = ''
-toy = ''
-upperReadings = []
-lowerReadings = []
 
 def saveReadings(readings, currentReading):
     if len(readings) > 9:
@@ -42,7 +40,7 @@ def distance(trigger, echo):
     GPIO.output(trigger, True)
     
     # set Trigger after 0.01ms to LOW
-    time.sleep(0.1)
+    time.sleep(0.01)
     GPIO.output(trigger, False)
     
 
@@ -53,9 +51,10 @@ def distance(trigger, echo):
     # save StartTime
     while GPIO.input(echo) == 0:
         StartTime = time.time()
-        #counter = counter + 1
-        #if counter == 100000:
-         #   break
+        counter = counter + 1
+        if counter == 100000:
+            print('loop')
+            break
         
     
  
@@ -63,9 +62,10 @@ def distance(trigger, echo):
     counter = 0
     while GPIO.input(echo) == 1:
         StopTime = time.time()
-        #counter = counter + 1
-        #if counter == 100000:
-        #    break
+        counter = counter + 1
+        if counter == 100000:
+            print('loop')
+            break
     
  
     # time difference between start and arrival
@@ -80,96 +80,118 @@ def distance(trigger, echo):
     #print(datetime.datetime.utcfromtimestamp(StartTime))
  
     return distance
- 
-if __name__ == '__main__':
-    try:
-        #GPIO.output(GPIO_TRIGGER, True)
-        #GPIO.output(17, True)
-        #time.sleep(0.00001)
 
-        #GPIO.output(GPIO_TRIGGER, False)
-        #GPIO.output(17, False)
-        #print("Waiting For Sensor To Settle")
-        #time.sleep(2)
 
-        exporttocsv.WriteHeaderRow(HEADER)
+def StartSensors():
+    ALLOWANCE = 8
 
-        count = 0
-        rows = []
+    HEADER = ['Id', 'Upper_Sensor', 'Lower_Sensor', 'Pitch', 'Toy', 'Timestamp']
+    currentPosture = ''
+    previousPosture = ''
+    beforePreviousPosture = ''
+    toy = ''
+    upperReadings = []
+    lowerReadings = []
 
-        while True:
-            count = count + 1
+    exporttocsv.WriteHeaderRow(HEADER)
 
-            lower = distance(18, 24) #lower
-            #print ("Measured Distance 1 = %.1f cm" % lower)
-            time.sleep(0.1)
+    count = 0
+    rows = []
 
+    while True:
+        count = count + 1
+
+        lower = distance(18, 24) #lower
+        #print ("Measured Distance 1 = %.1f cm" % lower)
+        time.sleep(0.01)
+
+        upper = distance(17, 27) #upper
+        if upper > 100:
+            time.sleep(0.01)
             upper = distance(17, 27) #upper
-            if upper > 100:
-                time.sleep(0.01)
-                upper = distance(17, 27) #upper
-            #print ("Measured Distance 2 = %.1f cm" % upper)
+        #print ("Measured Distance 2 = %.1f cm" % upper)
 
 
-            #find pitch from microbit gyroscope
-            pitchStr = pitch.GetPitch()
-            #print(pitchStr)
-            ##print(len(pitch.GetPitch()))
+        #find pitch from microbit gyroscope
+        pitchStr = pitch.GetPitch()
+        #print(pitchStr)
+        ##print(len(pitch.GetPitch()))
 
-            #store latest 10 readings
-            upperReadings = saveReadings(upperReadings, upper)
-            #print(upperReadings)
+        #store latest 10 readings
+        upperReadings = saveReadings(upperReadings, upper)
+        #print(upperReadings)
 
-            lowerReadings = saveReadings(lowerReadings, lower)
-            #print(lowerReadings)
+        lowerReadings = saveReadings(lowerReadings, lower)
+        #print(lowerReadings)
 
-            #find mediam of readings
-            upper = medianFilter.median(upperReadings)
-            lower = medianFilter.median(lowerReadings)
-            
-            #find the delta
-            delta = upper - lower
-            if upper > 100 and lower > 100:
-                currentPosture = 'straight'  #too close to both sensors
-            elif upper > 100:
-                currentPosture = previousPosture 
-            elif delta - ALLOWANCE > 0:
-                currentPosture = 'bent'
-                #print("currentPosture bend")
-            else:
-                currentPosture = 'straight'
-                #print("currentPosture straighten")
+        #find mediam of readings
+        upper = medianFilter.median(upperReadings)
+        lower = medianFilter.median(lowerReadings)
+        
+        #find the delta
+        delta = upper - lower
+        if upper > 100 and lower > 100:
+            currentPosture = 'straight'  #too close to both sensors
+        elif upper > 100:
+            currentPosture = previousPosture 
+        elif delta - ALLOWANCE > 0:
+            currentPosture = 'bent'
+            #print("currentPosture bend")
+        else:
+            currentPosture = 'straight'
+            #print("currentPosture straighten")
 
-            #check last 3 readings before moving
-            if currentPosture == previousPosture and currentPosture == beforePreviousPosture and currentPosture != toy:
-                servo.Move(currentPosture)
-            
-            toy = beforePreviousPosture
-            beforePreviousPosture = previousPosture
-            previousPosture = currentPosture
+        #check last 3 readings before moving
+        #if currentPosture == previousPosture and currentPosture == beforePreviousPosture and currentPosture != toy:
+        if currentPosture != previousPosture:
+            #servo.Move(currentPosture)
+            #server.sendServo()
+            lock = threading.Lock()
+            th = threading.Thread(target = client.SendPosture(currentPosture))
+            with lock:
+                th.start()
+        
+        toy = beforePreviousPosture
+        beforePreviousPosture = previousPosture
+        previousPosture = currentPosture
+        prevPosture = previousPosture
 
-            #log into csv
-            row = [count, upper, lower, pitchStr, currentPosture, datetime.datetime.now().strftime('%m-%d-%Y_%H.%M.%S')]
-            
-            
-            if len(rows) == 0:
-                rows = row
-            else:
-                rows = np.vstack([rows, row])
+        #log into csv
+        row = [count, upper, lower, pitchStr, currentPosture, datetime.datetime.now().strftime('%m-%d-%Y_%H.%M.%S')]
+        
+        
+        if len(rows) == 0:
+            rows = row
+        else:
+            rows = np.vstack([rows, row])
 
-            print(row)
-            #print(len(rows))
-            
-            if count % 10 == 0:
-                exporttocsv.WriteRows(rows)
-                rows = []
+        print(row)
+        #print(len(rows))
+        
+        if count % 30 == 0:
+            exporttocsv.WriteRows(rows)
+            rows = []
 
-            time.sleep(0.5)
+        time.sleep(0.01)
  
-        # Reset by pressing CTRL + C
-    except KeyboardInterrupt:
-        #print("Measurement stopped by User")
-        GPIO.cleanup()
+#if __name__ == '__main__':
+try:
+    #GPIO.output(GPIO_TRIGGER, True)
+    #GPIO.output(17, True)
+    #time.sleep(0.00001)
+
+    #GPIO.output(GPIO_TRIGGER, False)
+    #GPIO.output(17, False)
+    #print("Waiting For Sensor To Settle")
+    #time.sleep(2)
+    
+    sio.connect('ws://raspberrypi2.local:5000')
+    StartSensors()
+    
+    # Reset by pressing CTRL + C
+except KeyboardInterrupt:
+    #print("Measurement stopped by User")
+    GPIO.cleanup()
 
 
 
