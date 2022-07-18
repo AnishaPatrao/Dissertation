@@ -7,11 +7,11 @@ import datetime
 import numpy as np
 import servo
 import medianFilter
-import client
+#import client
 import threading
 import socketio
 
-sio = socketio.Client()
+#sio = socketio.Client()
 
 
 #GPIO Mode (BOARD / BCM)
@@ -83,9 +83,10 @@ def distance(trigger, echo):
 
 
 def StartSensors():
-    ALLOWANCE = 8
 
-    HEADER = ['Id', 'Upper_Sensor', 'Lower_Sensor', 'Pitch', 'Toy', 'Timestamp']
+    ALLOWANCE = 5
+
+    HEADER = ['Id', 'Upper_Sensor', 'Lower_Sensor', 'Pitch', 'Difference' 'Toy', 'Timestamp']
     currentPosture = ''
     previousPosture = ''
     beforePreviousPosture = ''
@@ -114,6 +115,10 @@ def StartSensors():
 
         #find pitch from microbit gyroscope
         pitchStr = pitch.GetPitch()
+        if pitchStr > -69:
+            ALLOWANCE = 5
+        else:
+            ALLOWANCE = 8
         #print(pitchStr)
         ##print(len(pitch.GetPitch()))
 
@@ -146,10 +151,11 @@ def StartSensors():
         if currentPosture != previousPosture:
             #servo.Move(currentPosture)
             #server.sendServo()
-            lock = threading.Lock()
+            
+            """ lock = threading.Lock()
             th = threading.Thread(target = client.SendPosture(currentPosture))
             with lock:
-                th.start()
+                th.start() """
         
         toy = beforePreviousPosture
         beforePreviousPosture = previousPosture
@@ -157,7 +163,7 @@ def StartSensors():
         prevPosture = previousPosture
 
         #log into csv
-        row = [count, upper, lower, pitchStr, currentPosture, datetime.datetime.now().strftime('%m-%d-%Y_%H.%M.%S')]
+        row = [count, upper, lower, pitchStr, delta - ALLOWANCE, currentPosture, datetime.datetime.now().strftime('%m-%d-%Y_%H.%M.%S')]
         
         
         if len(rows) == 0:
@@ -185,7 +191,7 @@ try:
     #print("Waiting For Sensor To Settle")
     #time.sleep(2)
     
-    sio.connect('ws://raspberrypi2.local:5000')
+    #sio.connect('ws://raspberrypi2.local:5000')
     StartSensors()
     
     # Reset by pressing CTRL + C
