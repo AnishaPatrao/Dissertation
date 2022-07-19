@@ -115,7 +115,7 @@ def StartSensors():
 
         #find pitch from microbit gyroscope
         pitchStr = pitch.GetPitch()
-        if pitchStr > -69:
+        if pitchStr > -70:
             ALLOWANCE = 5
         else:
             ALLOWANCE = 8
