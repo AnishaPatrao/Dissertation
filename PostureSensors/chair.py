@@ -28,10 +28,11 @@ GPIO.setup(GPIO_ECHO, GPIO.IN)
 GPIO.setup(17, GPIO.OUT)
 GPIO.setup(27, GPIO.IN)
 
+SENSOR_READING_LIMIT = 10
+SEND_READING_LIMIT = 40
 
-
-def saveReadings(readings, currentReading):
-    if len(readings) > 9:
+def saveReadings(readings, currentReading, readingLimit):
+    if len(readings) >= readingLimit:
         readings = np.delete(readings, 0)
     return np.concatenate((readings, [currentReading]))
 
@@ -83,15 +84,17 @@ def distance(trigger, echo):
 
 
 def StartSensors():
-    ALLOWANCE = 8
 
-    HEADER = ['Id', 'Upper_Sensor', 'Lower_Sensor', 'Pitch', 'Toy', 'Timestamp']
+    ALLOWANCE = 5
+
+    HEADER = ['Id', 'Upper_Sensor', 'Lower_Sensor', 'Pitch', 'Difference' 'Toy', 'Timestamp']
     currentPosture = ''
     previousPosture = ''
     beforePreviousPosture = ''
     toy = ''
     upperReadings = []
     lowerReadings = []
+    sendReadings = []
 
     exporttocsv.WriteHeaderRow(HEADER)
 
@@ -114,14 +117,18 @@ def StartSensors():
 
         #find pitch from microbit gyroscope
         pitchStr = pitch.GetPitch()
+        if pitchStr > -70:
+            ALLOWANCE = 5
+        else:
+            ALLOWANCE = 8
         #print(pitchStr)
         ##print(len(pitch.GetPitch()))
 
         #store latest 10 readings
-        upperReadings = saveReadings(upperReadings, upper)
+        upperReadings = saveReadings(upperReadings, upper, SENSOR_READING_LIMIT)
         #print(upperReadings)
 
-        lowerReadings = saveReadings(lowerReadings, lower)
+        lowerReadings = saveReadings(lowerReadings, lower, SENSOR_READING_LIMIT)
         #print(lowerReadings)
 
         #find mediam of readings
@@ -143,21 +150,31 @@ def StartSensors():
 
         #check last 3 readings before moving
         #if currentPosture == previousPosture and currentPosture == beforePreviousPosture and currentPosture != toy:
-        if currentPosture != previousPosture:
+        #if currentPosture != previousPosture:
+
             #servo.Move(currentPosture)
             #server.sendServo()
+        sendReadings = saveReadings(sendReadings, currentPosture, SEND_READING_LIMIT)
+        #print(sendReadings)
+        toSend = medianFilter.median(sendReadings)
+        #print(toSend)
+            
+        if len(sendReadings) >= SEND_READING_LIMIT and toSend != previousPosture:
+            print(currentPosture)
+            print(len(sendReadings))
+            previousPosture = toSend
             lock = threading.Lock()
-            th = threading.Thread(target = client.SendPosture(currentPosture))
+            th = threading.Thread(target = client.SendPosture(toSend))
             with lock:
                 th.start()
         
-        toy = beforePreviousPosture
-        beforePreviousPosture = previousPosture
-        previousPosture = currentPosture
-        prevPosture = previousPosture
+        #toy = beforePreviousPosture
+        #beforePreviousPosture = previousPosture
+        """ previousPosture = currentPosture
+        prevPosture = previousPosture """
 
         #log into csv
-        row = [count, upper, lower, pitchStr, currentPosture, datetime.datetime.now().strftime('%m-%d-%Y_%H.%M.%S')]
+        row = [count, upper, lower, pitchStr, delta - ALLOWANCE, currentPosture, datetime.datetime.now().strftime('%m-%d-%Y_%H.%M.%S')]
         
         
         if len(rows) == 0:
