@@ -42,5 +42,6 @@ def GetPitch():
                 
     except OSError as exception:
         raise
-            
-#GetPitch()
+
+""" while True:       
+    print(GetPitch()) """

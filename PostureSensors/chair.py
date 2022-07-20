@@ -7,11 +7,11 @@ import datetime
 import numpy as np
 import servo
 import medianFilter
-#import client
+import client
 import threading
 import socketio
 
-#sio = socketio.Client()
+sio = socketio.Client()
 
 
 #GPIO Mode (BOARD / BCM)
@@ -28,10 +28,11 @@ GPIO.setup(GPIO_ECHO, GPIO.IN)
 GPIO.setup(17, GPIO.OUT)
 GPIO.setup(27, GPIO.IN)
 
+SENSOR_READING_LIMIT = 10
+SEND_READING_LIMIT = 40
 
-
-def saveReadings(readings, currentReading):
-    if len(readings) > 9:
+def saveReadings(readings, currentReading, readingLimit):
+    if len(readings) >= readingLimit:
         readings = np.delete(readings, 0)
     return np.concatenate((readings, [currentReading]))
 
@@ -93,6 +94,7 @@ def StartSensors():
     toy = ''
     upperReadings = []
     lowerReadings = []
+    sendReadings = []
 
     exporttocsv.WriteHeaderRow(HEADER)
 
@@ -123,10 +125,10 @@ def StartSensors():
         ##print(len(pitch.GetPitch()))
 
         #store latest 10 readings
-        upperReadings = saveReadings(upperReadings, upper)
+        upperReadings = saveReadings(upperReadings, upper, SENSOR_READING_LIMIT)
         #print(upperReadings)
 
-        lowerReadings = saveReadings(lowerReadings, lower)
+        lowerReadings = saveReadings(lowerReadings, lower, SENSOR_READING_LIMIT)
         #print(lowerReadings)
 
         #find mediam of readings
@@ -148,19 +150,28 @@ def StartSensors():
 
         #check last 3 readings before moving
         #if currentPosture == previousPosture and currentPosture == beforePreviousPosture and currentPosture != toy:
-        if currentPosture != previousPosture:
+        #if currentPosture != previousPosture:
+
             #servo.Move(currentPosture)
             #server.sendServo()
+        sendReadings = saveReadings(sendReadings, currentPosture, SEND_READING_LIMIT)
+        #print(sendReadings)
+        toSend = medianFilter.median(sendReadings)
+        #print(toSend)
             
-            """ lock = threading.Lock()
-            th = threading.Thread(target = client.SendPosture(currentPosture))
+        if len(sendReadings) >= SEND_READING_LIMIT and toSend != previousPosture:
+            print(currentPosture)
+            print(len(sendReadings))
+            previousPosture = toSend
+            lock = threading.Lock()
+            th = threading.Thread(target = client.SendPosture(toSend))
             with lock:
-                th.start() """
+                th.start()
         
-        toy = beforePreviousPosture
-        beforePreviousPosture = previousPosture
-        previousPosture = currentPosture
-        prevPosture = previousPosture
+        #toy = beforePreviousPosture
+        #beforePreviousPosture = previousPosture
+        """ previousPosture = currentPosture
+        prevPosture = previousPosture """
 
         #log into csv
         row = [count, upper, lower, pitchStr, delta - ALLOWANCE, currentPosture, datetime.datetime.now().strftime('%m-%d-%Y_%H.%M.%S')]
@@ -191,7 +202,7 @@ try:
     #print("Waiting For Sensor To Settle")
     #time.sleep(2)
     
-    #sio.connect('ws://raspberrypi2.local:5000')
+    sio.connect('ws://raspberrypi2.local:5000')
     StartSensors()
     
     # Reset by pressing CTRL + C
