@@ -87,7 +87,7 @@ def StartSensors():
 
     ALLOWANCE = 5
 
-    HEADER = ['Id', 'Upper_Sensor', 'Lower_Sensor', 'Rotation', 'Difference' 'Toy', 'Timestamp']
+    HEADER = ['Id', 'Upper_Sensor', 'Lower_Sensor', 'Rotation', 'Difference', 'Posture', 'Timestamp']
     currentPosture = ''
     previousPosture = ''
     beforePreviousPosture = ''
@@ -137,13 +137,17 @@ def StartSensors():
         
         #find the delta
         delta = upper - lower
-        if upper > 100 and lower > 100:
+        """ if upper > 100 and lower > 100:
             currentPosture = 'straight'  #too close to both sensors
         elif upper > 100:
             currentPosture = previousPosture 
         elif delta - ALLOWANCE > 0:
             currentPosture = 'bent'
             #print("currentPosture bend")
+        else:
+            currentPosture = 'straight' """
+        if rotationStr < 90:
+            currentPosture = 'bent'
         else:
             currentPosture = 'straight'
             #print("currentPosture straighten")
@@ -163,6 +167,8 @@ def StartSensors():
             print(currentPosture)
             print(len(sendReadings))
             previousPosture = toSend
+            client.SendPosture(toSend)
+
             """ lock = threading.Lock()
             th = threading.Thread(target = client.SendPosture(toSend))
             with lock:
@@ -174,7 +180,7 @@ def StartSensors():
         prevPosture = previousPosture """
 
         #log into csv
-        row = [count, upper, lower, rotationStr, delta - ALLOWANCE, currentPosture, datetime.datetime.now().strftime('%m-%d-%Y_%H.%M.%S')]
+        row = [count, upper, lower, rotationStr, delta, currentPosture, datetime.datetime.now().strftime('%m-%d-%Y_%H.%M.%S')]
         
         
         if len(rows) == 0:
@@ -204,6 +210,14 @@ try:
     
     sio.connect('ws://raspberrypi2.local:5000')
     StartSensors()
+
+    """ lock = threading.Lock()
+    th = threading.Thread(target = )
+    with lock:
+        th.start() """
+    """ while True:
+        client.SendPosture(changeMannequin)
+     """
     
     # Reset by pressing CTRL + C
 except KeyboardInterrupt:
