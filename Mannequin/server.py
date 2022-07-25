@@ -1,6 +1,6 @@
 import eventlet #pip install -U eventlet
 import socketio #pip install "python-socketio[client]"
-import movement
+import move
 import json
 
 sio = socketio.Server()
@@ -19,7 +19,7 @@ def my_message(sid, data):
     posture = json.loads(strData)
     print(posture)
     # the result is a Python dictionary:
-    movement.Move(posture["response"])
+    move.Move(posture["response"])
 
 @sio.event
 def disconnect(sid):
