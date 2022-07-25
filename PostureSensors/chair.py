@@ -1,7 +1,7 @@
 #Libraries
 import RPi.GPIO as GPIO
 import time
-import pitch
+import rotation
 import exporttocsv
 import datetime
 import numpy as np
@@ -28,7 +28,7 @@ GPIO.setup(GPIO_ECHO, GPIO.IN)
 GPIO.setup(17, GPIO.OUT)
 GPIO.setup(27, GPIO.IN)
 
-SENSOR_READING_LIMIT = 10
+SENSOR_READING_LIMIT = 20
 SEND_READING_LIMIT = 40
 
 def saveReadings(readings, currentReading, readingLimit):
@@ -87,7 +87,7 @@ def StartSensors():
 
     ALLOWANCE = 5
 
-    HEADER = ['Id', 'Upper_Sensor', 'Lower_Sensor', 'Pitch', 'Difference' 'Toy', 'Timestamp']
+    HEADER = ['Id', 'Upper_Sensor', 'Lower_Sensor', 'Rotation', 'Difference' 'Toy', 'Timestamp']
     currentPosture = ''
     previousPosture = ''
     beforePreviousPosture = ''
@@ -115,14 +115,14 @@ def StartSensors():
         #print ("Measured Distance 2 = %.1f cm" % upper)
 
 
-        #find pitch from microbit gyroscope
-        pitchStr = pitch.GetPitch()
-        if pitchStr > -70:
-            ALLOWANCE = 5
+        #find rotation from microbit gyroscope
+        rotationStr = rotation.GetRotation()
+        if rotationStr > -60:
+            ALLOWANCE = 6
         else:
             ALLOWANCE = 8
-        #print(pitchStr)
-        ##print(len(pitch.GetPitch()))
+        #print(rotationStr)
+        ##print(len(rotation.GetPitch()))
 
         #store latest 10 readings
         upperReadings = saveReadings(upperReadings, upper, SENSOR_READING_LIMIT)
@@ -163,10 +163,10 @@ def StartSensors():
             print(currentPosture)
             print(len(sendReadings))
             previousPosture = toSend
-            lock = threading.Lock()
+            """ lock = threading.Lock()
             th = threading.Thread(target = client.SendPosture(toSend))
             with lock:
-                th.start()
+                th.start() """
         
         #toy = beforePreviousPosture
         #beforePreviousPosture = previousPosture
@@ -174,7 +174,7 @@ def StartSensors():
         prevPosture = previousPosture """
 
         #log into csv
-        row = [count, upper, lower, pitchStr, delta - ALLOWANCE, currentPosture, datetime.datetime.now().strftime('%m-%d-%Y_%H.%M.%S')]
+        row = [count, upper, lower, rotationStr, delta - ALLOWANCE, currentPosture, datetime.datetime.now().strftime('%m-%d-%Y_%H.%M.%S')]
         
         
         if len(rows) == 0:
@@ -189,7 +189,7 @@ def StartSensors():
             exporttocsv.WriteRows(rows)
             rows = []
 
-        time.sleep(0.01)
+        time.sleep(0.1)
  
 #if __name__ == '__main__':
 try:

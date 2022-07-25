@@ -9,7 +9,7 @@ from serial import Serial
 import re
 
 nextCompassPoll = 0.0 
-pitchStr = ""
+rotationStr = ""
 numbers = re.compile('-?\d+')
 
 #serial connectoion to the microbit - microbits device id is stored in the below path
@@ -19,7 +19,7 @@ def has_numbers(inputString):
     return any(char.isdigit() for char in inputString)
 
 #function to trigger the microbit
-def GetPitch():
+def GetRotation():
     try:
         #while True:
         if (os.path.isdir(serialDevDir)):
@@ -30,18 +30,18 @@ def GetPitch():
                 serial = Serial(port=serialDevicePath, baudrate=115200, timeout=0.2) 
                 #send a serial signal to the microbit
                 time.sleep(0.01)
-                pitchStr = str(serial.readline())
-                if has_numbers(pitchStr):
-                    #print(pitchStr)
-                    result = list(map(int, numbers.findall(pitchStr)))
+                rotationStr = str(serial.readline())
+                if has_numbers(rotationStr):
+                    #print(rotationStr)
+                    result = list(map(int, numbers.findall(rotationStr)))
                     #print(result[0])
                     return result[0]
                 else:
                     #print("loop")
-                    return GetPitch()
+                    return GetRotation()
                 
     except OSError as exception:
         raise
 
 """ while True:       
-    print(GetPitch()) """
+    print(GetRotation()) """
