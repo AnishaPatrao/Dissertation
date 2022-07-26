@@ -7,11 +7,11 @@ import datetime
 import numpy as np
 import servo
 import medianFilter
-import client
+#import client
 import threading
 import socketio
 
-sio = socketio.Client()
+#sio = socketio.Client()
 
 
 #GPIO Mode (BOARD / BCM)
@@ -167,7 +167,7 @@ def StartSensors():
             print(currentPosture)
             print(len(sendReadings))
             previousPosture = toSend
-            client.SendPosture(toSend)
+            #client.SendPosture(toSend)
 
             """ lock = threading.Lock()
             th = threading.Thread(target = client.SendPosture(toSend))
@@ -208,7 +208,7 @@ try:
     #print("Waiting For Sensor To Settle")
     #time.sleep(2)
     
-    sio.connect('ws://raspberrypi2.local:5000')
+    #sio.connect('ws://raspberrypi2.local:5000')
     StartSensors()
 
     """ lock = threading.Lock()
