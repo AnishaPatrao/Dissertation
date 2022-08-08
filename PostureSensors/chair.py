@@ -94,12 +94,17 @@ def StartSensors():
     toy = ''
     upperReadings = []
     lowerReadings = []
+    rotationReadings = []
     sendReadings = []
+
 
     exporttocsv.WriteHeaderRow(HEADER)
 
     count = 0
     rows = []
+
+    thoracicBend = False
+    lumbarBend = False
 
     while True:
         count = count + 1
@@ -131,9 +136,13 @@ def StartSensors():
         lowerReadings = saveReadings(lowerReadings, lower, SENSOR_READING_LIMIT)
         #print(lowerReadings)
 
+        rotationReadings = saveReadings(rotationReadings, rotationStr, SENSOR_READING_LIMIT)
+
+
         #find mediam of readings
         upper = medianFilter.median(upperReadings)
         lower = medianFilter.median(lowerReadings)
+        rotationStr = medianFilter.median(rotationReadings)
         
         #find the delta
         delta = upper - lower
@@ -146,7 +155,19 @@ def StartSensors():
             #print("currentPosture bend")
         else:
             currentPosture = 'straight' """
-        if rotationStr < 90:
+
+        #24+-5 degree of thoracic flexion is allowable for upright to intermediate posture. anthing more is a slump
+        if rotationStr <= 61:
+            thoracicBend = True
+        else:
+            thoracicBend = False
+
+        if upper > 15 or lower > 8:
+            lumbarBend = True
+        else:
+            lumbarBend = False
+
+        if thoracicBend or lumbarBend:
             currentPosture = 'bent'
         else:
             currentPosture = 'straight'
