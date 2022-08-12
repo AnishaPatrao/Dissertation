@@ -29,7 +29,7 @@ GPIO.setup(17, GPIO.OUT)
 GPIO.setup(27, GPIO.IN)
 
 SENSOR_READING_LIMIT = 20
-SEND_READING_LIMIT = 100
+SEND_READING_LIMIT = 30
 
 def saveReadings(readings, currentReading, readingLimit):
     if len(readings) >= readingLimit:
