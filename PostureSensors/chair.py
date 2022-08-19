@@ -7,11 +7,11 @@ import datetime
 import numpy as np
 import servo
 import medianFilter
-#import client
+import client
 import threading
 import socketio
 
-#sio = socketio.Client()
+sio = socketio.Client()
 
 
 #GPIO Mode (BOARD / BCM)
@@ -29,7 +29,7 @@ GPIO.setup(17, GPIO.OUT)
 GPIO.setup(27, GPIO.IN)
 
 SENSOR_READING_LIMIT = 20
-SEND_READING_LIMIT = 30
+SEND_READING_LIMIT = 50
 
 def saveReadings(readings, currentReading, readingLimit):
     if len(readings) >= readingLimit:
@@ -160,7 +160,7 @@ def StartSensors():
             print(currentPosture)
             print(len(sendReadings))
             previousPosture = toSend
-            #client.SendPosture(toSend)
+            client.SendPosture(toSend)
 
         #log into csv
         row = [count, upper, lower, rotationStr, currentPosture, toSend, datetime.datetime.now().strftime('%m-%d-%Y_%H.%M.%S')]
