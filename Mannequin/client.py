@@ -1,3 +1,4 @@
+#File to create a server using socketio
 import socketio
 
 sio = socketio.Client()
@@ -22,7 +23,6 @@ def disconnect():
     print('disconnected from server')
 
 sio.connect('ws://raspberrypi.local:5000')
-#sio.wait()
 
 count = 1
 while count < 5:
