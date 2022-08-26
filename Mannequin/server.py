@@ -15,16 +15,12 @@ def connect(sid, environ):
 @sio.event
 def my_message(sid, data):
     strData = json.dumps(data)
-    # parse x:
     posture = json.loads(strData)
-    print(posture)
-    # the result is a Python dictionary:
     move.Move(posture["response"])
 
 @sio.event
 def disconnect(sid):
     print('disconnect ', sid)
-
 
 
 if __name__ == '__main__':
