@@ -21,10 +21,8 @@ def has_numbers(inputString):
 #function to trigger the microbit
 def GetRotation():
     try:
-        #while True:
         if (os.path.isdir(serialDevDir)):
             serialDevices = os.listdir(serialDevDir) 
-            ##print(serialDevices)
             if (len(serialDevices) > 0):
                 serialDevicePath = os.path.join(serialDevDir, serialDevices[0])
                 serial = Serial(port=serialDevicePath, baudrate=115200, timeout=0.2) 
@@ -32,16 +30,12 @@ def GetRotation():
                 time.sleep(0.01)
                 rotationStr = str(serial.readline())
                 if has_numbers(rotationStr):
-                    #print(rotationStr)
                     result = list(map(int, numbers.findall(rotationStr)))
-                    #print(result[0])
                     return result[0]
                 else:
-                    #print("loop")
                     return GetRotation()
                 
     except OSError as exception:
         raise
 
-""" while True:       
-    print(GetRotation()) """
+

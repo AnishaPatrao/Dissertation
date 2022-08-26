@@ -29,8 +29,9 @@ GPIO.setup(17, GPIO.OUT)
 GPIO.setup(27, GPIO.IN)
 
 SENSOR_READING_LIMIT = 20
-SEND_READING_LIMIT = 50
+SEND_READING_LIMIT = 20
 
+#Method to save readings into a list to apply a median filter
 def saveReadings(readings, currentReading, readingLimit):
     if len(readings) >= readingLimit:
         readings = np.delete(readings, 0)
@@ -43,7 +44,6 @@ def distance(trigger, echo):
     # set Trigger after 0.01ms to LOW
     time.sleep(0.01)
     GPIO.output(trigger, False)
-    
 
     StartTime = time.time()
     StopTime = time.time()
@@ -56,8 +56,6 @@ def distance(trigger, echo):
         if counter == 100000:
             print('loop')
             break
-        
-    
  
     # save time of arrival
     counter = 0
@@ -67,22 +65,16 @@ def distance(trigger, echo):
         if counter == 100000:
             print('loop')
             break
-    
  
     # time difference between start and arrival
     TimeElapsed = StopTime - StartTime
-    
     # multiply with the sonic speed (34300 cm/s)
     # and divide by 2, because there and back
     distance = (TimeElapsed * 34300) / 2
-
     return distance
 
-
 def StartSensors():
-
     ALLOWANCE = 5
-
     HEADER = ['Id', 'Upper_Sensor', 'Lower_Sensor', 'Rotation', 'ComputedPosture', 'MannequinPosture', 'Timestamp']
     currentPosture = ''
     previousPosture = ''
@@ -92,13 +84,9 @@ def StartSensors():
     lowerReadings = []
     rotationReadings = []
     sendReadings = []
-
-
     exporttocsv.WriteHeaderRow(HEADER)
-
     count = 0
     rows = []
-
     thoracicBend = False
     lumbarBend = False
 
@@ -112,7 +100,6 @@ def StartSensors():
         if upper > 100:
             time.sleep(0.01)
             upper = distance(17, 27) #upper
-
 
         #find rotation from microbit gyroscope
         rotationStr = rotation.GetRotation()
@@ -140,7 +127,9 @@ def StartSensors():
         else:
             thoracicBend = False
 
+        #remove outliers
         if upper < 100 and lower < 100:
+            #allow for normal forward movement
             if upper > 20 or lower > 12:
                 lumbarBend = True
             else:
@@ -160,6 +149,7 @@ def StartSensors():
             print(currentPosture)
             print(len(sendReadings))
             previousPosture = toSend
+            #send value to mannequin
             client.SendPosture(toSend)
 
         #log into csv
@@ -172,6 +162,7 @@ def StartSensors():
 
         print(row)
         
+        #write to csv
         if count % 30 == 0:
             exporttocsv.WriteRows(rows)
             rows = []
